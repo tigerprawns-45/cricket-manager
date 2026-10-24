@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f6f3a">
+  <title>Cricket Manager</title>
+  <style>
+    :root {
+      --bg: #f3f5f1;
+      --card: #ffffff;
+      --text: #1b231d;
+      --muted: #627066;
+      --line: #dfe5dc;
+      --accent: #1f6f3a;
+      --accent-text: #ffffff;
+      --grass: #8fd18a;
+      --grass-edge: #5fae5b;
+      --pitch: #e8dcae;
+      --spot: #ffffff;
+      --bowler: #ffd34d;
+      --keeper: #cfe3ff;
+      --warn-bg: #fff3e0;
+      --warn: #8a4b00;
+      --out-bg: #eceee9;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111612;
+        --card: #1b221d;
+        --text: #e7ede8;
+        --muted: #93a197;
+        --line: #2d3830;
+        --accent: #4fb36d;
+        --accent-text: #0b130d;
+        --grass: #2f6b35;
+        --grass-edge: #3f8a45;
+        --pitch: #8f8159;
+        --spot: #f3f6f2;
+        --bowler: #ffd34d;
+        --keeper: #cfe3ff;
+        --warn-bg: #3a2a12;
+        --warn: #ffc77a;
+        --out-bg: #232b25;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    }
+    header { padding: 16px 16px 4px; max-width: 640px; margin: 0 auto; }
+    header h1 { font-size: 1.25rem; margin: 0; }
+    header .season { color: var(--muted); font-size: .9rem; }
+    main { max-width: 640px; margin: 0 auto; padding: 8px 16px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+    .card.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+    .card.warn ul { margin: 0; padding-left: 18px; }
+    .card.next { border-color: var(--accent); }
+    h2 { font-size: 1.05rem; margin: 0 0 10px; }
+    h3 { font-size: .95rem; margin: 14px 0 8px; }
+    .muted { color: var(--muted); font-weight: normal; }
+    .hint { color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
+    .center { text-align: center; }
+    .row { display: flex; align-items: center; gap: 8px; }
+    .row > :first-child { flex: 1; }
+    .row h2 { margin: 0; }
+    button, select, input {
+      font: inherit; color: inherit; background: var(--card);
+      border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-height: 40px;
+    }
+    button { cursor: pointer; }
+    button:disabled { opacity: .35; cursor: default; }
+    button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+    button.icon { min-width: 40px; padding: 6px; }
+    select, input { width: 100%; }
+    .duties { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 0; }
+    .duties div { min-width: 0; }
+    .duties dt { color: var(--muted); font-size: .8rem; }
+    .duties dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { border-radius: 999px; background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+    .chip.out { background: var(--out-bg); color: var(--muted); border-color: var(--line); text-decoration: line-through; font-weight: normal; }
+    .chip:disabled { opacity: 1; }
+    .keepers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
+    label strong, label select, label input { color: var(--text); font-size: 1rem; }
+    .list { list-style: none; margin: 0; padding: 0; }
+    .list li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+    .list li:first-child { border-top: 0; }
+    .list .right { margin-left: auto; color: var(--muted); display: flex; gap: 6px; }
+    .num { display: inline-block; min-width: 1.6em; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .tag { font-size: .75rem; background: var(--accent); color: var(--accent-text); border-radius: 6px; padding: 1px 6px; }
+    .blocks { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .blocks h3 { margin-top: 0; }
+    .overs li { padding: 0; }
+    .overs button { border: 0; width: 100%; text-align: left; min-height: 34px; padding: 4px 6px; border-radius: 8px; background: none; }
+    .overs button.current { background: var(--bowler); color: #1b231d; }
+    .overs button.current .num { color: inherit; }
+    .field { width: 100%; max-width: 380px; display: block; margin: 0 auto; }
+    .field .grass { fill: var(--grass); stroke: var(--grass-edge); stroke-width: 3; }
+    .field .pitch { fill: var(--pitch); }
+    .field .stumps line { stroke: #3b2a14; stroke-width: 2; }
+    .field .spot rect { fill: var(--spot); stroke: rgba(0,0,0,.15); }
+    .field .spot.bowler rect { fill: var(--bowler); }
+    .field .spot.keeper rect { fill: var(--keeper); }
+    .field .spot text { text-anchor: middle; font-size: 13px; font-weight: 600; fill: #1b231d; }
+    .field .spot text.sub { font-size: 10px; font-weight: 600; fill: #4a5a4e; }
+    .stepper { display: grid; grid-template-columns: 56px 1fr 56px; align-items: center; text-align: center; margin-top: 8px; }
+    .stepper button { font-size: 1.5rem; padding: 0; }
+    input[type=range] { padding: 0; border: 0; margin-top: 10px; accent-color: var(--accent); background: none; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .grid .wide { grid-column: 1 / -1; }
+    .list input { flex: 1; }
+    form.row { margin-top: 10px; }
+    nav {
+      position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: center;
+      background: var(--card); border-top: 1px solid var(--line); padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    }
+    nav[hidden] { display: none; }
+    nav button { flex: 1; max-width: 200px; border: 0; background: none; color: var(--muted); font-weight: 600; }
+    nav button[aria-current=true] { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Cricket Manager</h1>
+    <div class="season"></div>
+  </header>
+  <main></main>
+  <nav>
+    <button data-tab="match">Match day</button>
+    <button data-tab="squad">Squad</button>
+    <button data-tab="roster">Roster</button>
+  </nav>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
