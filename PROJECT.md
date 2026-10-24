@@ -20,3 +20,7 @@ order, overs and field rebalance without redoing the sheet by hand.
 - Note when a player is unavailable and rebalance around them
 - Each batter faces a set number of balls depending on how many players are available
 - Show the roster for captain and lollies
+- Bowling rebalance: just keep going back around the list
+- Fielding positions and bowling order are linked — players rotate after every over, so field positions rotate too, with the exception of the wicket keeper
+- Nominate a wicket keeper for each 10-over block; they don't rotate or bowl during that block
+- Second 10-over block: just continue around the list from where the first block left off, skipping the keeper
