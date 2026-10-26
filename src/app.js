@@ -1,5 +1,5 @@
 import {
-  OVERS, BLOCK, battingOrder, bowlingPlan, fieldForOver, oversByPlayer, bowlingCounts, planProblems,
+  BLOCK, battingOrder, bowlingPlan, fieldForOver, oversByPlayer, bowlingCounts, planProblems,
 } from './engine.js';
 import { load, save, defaultState, newPlayerId, matchFor, shareUrl, readShare } from './store.js';
 
@@ -8,7 +8,6 @@ const readOnly = !!shared;
 let state = shared || load();
 let tab = 'match';
 let date = shared ? shared.sharedDate : defaultDate();
-let over = 1;
 
 const main = document.querySelector('main');
 const tabs = document.querySelector('nav');
@@ -126,20 +125,12 @@ function matchView() {
 }
 
 function fieldCard(plan, row) {
-  over = Math.min(Math.max(over, 1), OVERS);
-  const current = plan.overs[over - 1];
-  return `
+  return plan.blocks.map((b) => `
     <section class="card">
-      <h2>Field</h2>
-      ${fieldSvg(plan, over, row.captain)}
-      <div class="stepper">
-        <button data-action="over" data-over="${over - 1}" ${over === 1 ? 'disabled' : ''} aria-label="Previous over">‹</button>
-        <div><strong>Over ${over}</strong><br><span class="muted">${esc(nameOf(current.bowler))} bowling</span></div>
-        <button data-action="over" data-over="${over + 1}" ${over === OVERS ? 'disabled' : ''} aria-label="Next over">›</button>
-      </div>
-      <input type="range" min="1" max="${OVERS}" value="${over}" data-action="slide" aria-label="Over">
-      <p class="hint">Small numbers are the overs each player bowls in this block.</p>
-    </section>`;
+      <h2>Starting field <span class="muted">overs ${b.firstOver}–${b.firstOver + BLOCK - 1}</span></h2>
+      ${fieldSvg(plan, b.firstOver, row.captain)}
+      <p class="hint">Small numbers are the overs each player bowls. Everyone but the keeper moves one spot towards the bowler after each over.</p>
+    </section>`).join('');
 }
 
 // Bowler at the top stumps, keeper at the bottom; everyone else spread round the
@@ -188,8 +179,7 @@ function bowlingCard(plan) {
     <div>
       <h3>Overs ${i * BLOCK + 1}–${(i + 1) * BLOCK} <span class="muted">· ${esc(nameOf(b.keeper))} keeps</span></h3>
       <ol class="list overs">${plan.overs.filter((o) => o.block === i).map((o) => `
-        <li><button data-action="over" data-over="${o.over}" class="${o.over === over ? 'current' : ''}">
-          <span class="num">${o.over}</span>${esc(nameOf(o.bowler))}</button></li>`).join('')}
+        <li><span class="num">${o.over}</span>${esc(nameOf(o.bowler))}</li>`).join('')}
       </ol>
     </div>`).join('');
   const tally = Object.entries(counts).map(([pid, n]) => `${esc(nameOf(pid))} ${n}`).join(' · ');
@@ -310,9 +300,6 @@ main.addEventListener('click', (e) => {
     const { unavailable } = matchFor(state, date);
     const pid = el.dataset.id;
     setMatch({ unavailable: unavailable.includes(pid) ? unavailable.filter((x) => x !== pid) : [...unavailable, pid] });
-  } else if (action === 'over') {
-    over = Number(el.dataset.over);
-    render();
   } else if (action === 'share') {
     share();
   } else if (action === 'move') {
@@ -356,7 +343,6 @@ main.addEventListener('change', (e) => {
   const { action } = el.dataset;
   if (action === 'date') {
     date = el.value;
-    over = 1;
     render();
   } else if (action === 'keeper') {
     const { keepers } = matchFor(state, date);
@@ -385,13 +371,6 @@ main.addEventListener('change', (e) => {
     if (date === from) date = to;
     persist();
   }
-});
-
-main.addEventListener('input', (e) => {
-  if (e.target.dataset.action !== 'slide') return;
-  over = Number(e.target.value);
-  render();
-  main.querySelector('[data-action="slide"]')?.focus();
 });
 
 main.addEventListener('submit', (e) => {
