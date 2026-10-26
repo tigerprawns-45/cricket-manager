@@ -1,9 +1,11 @@
 ---
 name: Cricket Manager
 id: cricket-manager
-stage: concept
+stage: live
 owner: Jason
 summary: Match-day planner for the Seaforth HOWZATS U11s — the coach marks who's unavailable and it rebuilds the batting order (balls per batter scaled to how many players are available), the 20-over bowling rotation and fielding positions, alongside the season roster of captain, wicketkeepers and lollies.
+links:
+  live: https://tigerprawns-45.github.io/cricket-manager/
 ---
 
 Replaces the season spreadsheet used to run the Seaforth HOWZATS U11s (2026/27). Today that
