@@ -104,7 +104,12 @@ function matchView() {
         <button class="primary" data-action="share">${readOnly ? 'Open app' : 'Share'}</button>
       </div>
       ${duties}
-      ${plan && !readOnly ? '<button class="primary wide-button" data-action="whatsapp">Copy for WhatsApp</button>' : ''}
+      ${plan && !readOnly ? (isPhone()
+        ? '<button class="primary wide-button" data-action="whatsapp">Share to WhatsApp</button>'
+        : `<div class="pair">
+            <button class="primary" data-action="whatsapp">Copy message</button>
+            <button class="primary" data-action="picture">Copy field picture</button>
+          </div>`) : ''}
     </section>
 
     <section class="card">
@@ -137,6 +142,57 @@ function fieldCard(plan, row) {
 // Bowler at the top stumps, keeper at the bottom; everyone else spread round the
 // left side then back up the right, the order they step through towards the bowler.
 function fieldSvg(plan, overNo, captain) {
+  return `
+    <svg class="field" viewBox="0 0 320 360" role="img" aria-label="Field placings for over ${overNo}">
+      ${fieldShapes(plan, overNo, captain)}
+    </svg>`;
+}
+
+// Fixed light colours: the picture leaves the page, so it can't use the theme.
+const PICTURE_STYLE = `
+  .grass { fill: #8fd18a; stroke: #5fae5b; stroke-width: 3; }
+  .pitch { fill: #e8dcae; }
+  .stumps line { stroke: #3b2a14; stroke-width: 2; }
+  .spot rect { fill: #fff; stroke: rgba(0,0,0,.15); }
+  .spot.bowler rect { fill: #ffd34d; }
+  .spot.keeper rect { fill: #cfe3ff; }
+  text { font-family: system-ui, "Segoe UI", Roboto, sans-serif; text-anchor: middle; fill: #1b231d; }
+  .spot text { font-size: 13px; font-weight: 600; }
+  .spot text.sub { font-size: 10px; fill: #4a5a4e; }
+  .title { font-size: 17px; font-weight: 700; }
+  .heading { font-size: 20px; font-weight: 700; }`;
+
+// Both starting fields side by side, as a PNG for pasting into WhatsApp.
+function fieldPicture(plan, captain, heading) {
+  const w = 700; const h = 440;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <style>${PICTURE_STYLE}</style>
+    <rect width="${w}" height="${h}" fill="#f3f5f1"/>
+    <text class="heading" x="${w / 2}" y="32">${esc(heading)}</text>
+    ${plan.blocks.map((b, i) => `
+      <g transform="translate(${15 + i * 350}, 50)">
+        <text class="title" x="160" y="10">Overs ${b.firstOver}–${b.firstOver + BLOCK - 1}</text>
+        <g transform="translate(0, 20)">${fieldShapes(plan, b.firstOver, captain)}</g>
+      </g>`).join('')}
+  </svg>`;
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = w * scale;
+      canvas.height = h * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('No image'))), 'image/png');
+    };
+    img.onerror = reject;
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  });
+}
+
+function fieldShapes(plan, overNo, captain) {
   const field = fieldForOver(plan, overNo);
   const block = plan.overs[overNo - 1].block;
   const overs = oversByPlayer(plan, block);
@@ -158,20 +214,18 @@ function fieldSvg(plan, overNo, captain) {
   const label = (pid) => `${nameOf(pid)}${pid === captain ? ' (c)' : ''}`;
   const box = ([x, y], text, sub, cls) => `
     <g class="spot ${cls}">
-      <rect x="${x - 39}" y="${y - 18}" width="78"height="${sub ? 36 : 30}" rx="7"/>
+      <rect x="${x - 39}" y="${y - 18}" width="78" height="${sub ? 36 : 30}" rx="7"/>
       <text x="${x}" y="${y + (sub ? -2 : 3)}">${esc(text)}</text>
       ${sub ? `<text class="sub" x="${x}" y="${y + 12}">${esc(sub)}</text>` : ''}
     </g>`;
 
   const stumps = (y) => [-5, 0, 5].map((d) => `<line x1="${cx + d}" y1="${y}" x2="${cx + d}" y2="${y + 10}"/>`).join('');
   return `
-    <svg class="field" viewBox="0 0 320 360" role="img" aria-label="Field placings for over ${overNo}">
       <ellipse class="grass" cx="${cx}" cy="${cy}" rx="154" ry="174"/>
       <rect class="pitch" x="${cx - 9}" y="112" width="18" height="136" rx="2"/>
       <g class="stumps">${stumps(108)}${stumps(242)}</g>
       ${field.spots.map((pid, s) => box(points[s], label(pid), (overs[pid] || []).join(', '), s === 0 ? 'bowler' : '')).join('')}
-      ${box([cx, 280], `${label(field.keeper)} (w)`, '', 'keeper')}
-    </svg>`;
+      ${box([cx, 280], `${label(field.keeper)} (w)`, '', 'keeper')}`;
 }
 
 function bowlingCard(plan) {
@@ -279,10 +333,13 @@ async function share() {
 // Phones get the share sheet. Elsewhere copy instead: the Windows share dialog
 // can open behind the browser and leave the page looking frozen. Never use
 // alert/prompt here, since they block the page too.
+// Touchscreen laptops report a coarse pointer too, so check the device itself.
+function isPhone() {
+  return navigator.userAgentData?.mobile ?? /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 async function send(data, text, copiedMsg) {
-  // Touchscreen laptops report a coarse pointer too, so check the device itself.
-  const phone = navigator.userAgentData?.mobile ?? /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  if (phone && navigator.share) {
+  if (isPhone() && navigator.share) {
     try {
       await navigator.share(data);
       return;
@@ -330,7 +387,44 @@ async function whatsapp() {
     plan: bowlingPlan(state.bowling, unavailable, keepers),
     nameOf,
   });
-  await send({ text }, text, 'Copied');
+  if (isPhone() && navigator.canShare) {
+    // WhatsApp takes the picture with the message as its caption.
+    const blob = await picture();
+    const files = [new File([blob], 'starting-fields.png', { type: 'image/png' })];
+    if (navigator.canShare({ files })) {
+      try {
+        await navigator.share({ files, text });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+      }
+    }
+  }
+  await send({ text }, text, 'Message copied');
+}
+
+function picture() {
+  const { unavailable, keepers } = matchFor(state, date);
+  const row = state.roster.find((r) => r.date === date) || {};
+  const plan = bowlingPlan(state.bowling, unavailable, keepers);
+  return fieldPicture(plan, row.captain, `Starting fields – ${prettyDate(date).replace(',', '')}`);
+}
+
+// The promise goes straight into ClipboardItem so the click still counts as the
+// user's permission once the picture has finished drawing.
+async function copyPicture() {
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': picture() })]);
+    toast('Picture copied — paste it into WhatsApp.');
+  } catch {
+    const url = URL.createObjectURL(await picture());
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'starting-fields.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('Copying pictures is blocked here, so it was saved instead.');
+  }
 }
 
 tabs.addEventListener('click', (e) => {
@@ -353,6 +447,8 @@ main.addEventListener('click', (e) => {
     share();
   } else if (action === 'whatsapp') {
     whatsapp();
+  } else if (action === 'picture') {
+    copyPicture();
   } else if (action === 'move') {
     move(state[el.dataset.list], Number(el.dataset.i), Number(el.dataset.dir));
     persist();
