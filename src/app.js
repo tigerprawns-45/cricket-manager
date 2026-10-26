@@ -104,12 +104,7 @@ function matchView() {
         <button class="primary" data-action="share">${readOnly ? 'Open app' : 'Share'}</button>
       </div>
       ${duties}
-      ${plan && !readOnly ? (isPhone()
-        ? '<button class="primary wide-button" data-action="whatsapp">Share to WhatsApp</button>'
-        : `<div class="pair">
-            <button class="primary" data-action="whatsapp">Copy message</button>
-            <button class="primary" data-action="picture">Copy field picture</button>
-          </div>`) : ''}
+      ${plan && !readOnly ? `<button class="primary wide-button" data-action="whatsapp">${isPhone() ? 'Share' : 'Copy'} for WhatsApp</button>` : ''}
     </section>
 
     <section class="card">
@@ -160,17 +155,20 @@ const PICTURE_STYLE = `
   .spot text { font-size: 13px; font-weight: 600; }
   .spot text.sub { font-size: 10px; fill: #4a5a4e; }
   .title { font-size: 17px; font-weight: 700; }
-  .heading { font-size: 20px; font-weight: 700; }`;
+  .heading { font-size: 20px; font-weight: 700; }
+  .detail { font-size: 15px; }`;
 
 // Both starting fields side by side, as a PNG for pasting into WhatsApp.
-function fieldPicture(plan, captain, heading) {
-  const w = 700; const h = 440;
+function fieldPicture(plan, captain, heading, details) {
+  const top = 50 + details.length * 22;
+  const w = 700; const h = top + 395;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
     <style>${PICTURE_STYLE}</style>
     <rect width="${w}" height="${h}" fill="#f3f5f1"/>
     <text class="heading" x="${w / 2}" y="32">${esc(heading)}</text>
+    ${details.map((line, i) => `<text class="detail" x="${w / 2}" y="${60 + i * 22}">${esc(line)}</text>`).join('')}
     ${plan.blocks.map((b, i) => `
-      <g transform="translate(${15 + i * 350}, 50)">
+      <g transform="translate(${15 + i * 350}, ${top + 10})">
         <text class="title" x="160" y="10">Overs ${b.firstOver}–${b.firstOver + BLOCK - 1}</text>
         <g transform="translate(0, 20)">${fieldShapes(plan, b.firstOver, captain)}</g>
       </g>`).join('')}
@@ -375,22 +373,33 @@ function showText(text) {
   d.querySelector('textarea').select();
 }
 
-async function whatsapp() {
+// The message text and both starting fields, for the parents' WhatsApp group.
+function matchUpdate() {
   const row = state.roster.find((r) => r.date === date) || {};
   const { unavailable, keepers } = matchFor(state, date);
+  const plan = bowlingPlan(state.bowling, unavailable, keepers);
+  const dateLabel = prettyDate(date).replace(',', '');
   const text = whatsappMessage({
     team: state.team,
-    dateLabel: prettyDate(date).replace(',', ''),
+    dateLabel,
     captain: nameOf(row.captain),
     lollies: nameOf(row.lollies),
     out: unavailable.map(nameOf),
-    plan: bowlingPlan(state.bowling, unavailable, keepers),
+    plan,
     nameOf,
   });
+  // The picture repeats the details, so a paste that keeps only the image loses nothing.
+  const [heading, , ...details] = text.replace(/\*/g, '').split('\n');
+  return { text, picture: () => fieldPicture(plan, row.captain, heading, details) };
+}
+
+// One tap or click sends the picture and the message together. On a phone the
+// share sheet passes the message as the picture's caption; on a computer both go
+// on the clipboard, and WhatsApp pastes the picture.
+async function whatsapp() {
+  const { text, picture } = matchUpdate();
   if (isPhone() && navigator.canShare) {
-    // WhatsApp takes the picture with the message as its caption.
-    const blob = await picture();
-    const files = [new File([blob], 'starting-fields.png', { type: 'image/png' })];
+    const files = [new File([await picture()], 'starting-fields.png', { type: 'image/png' })];
     if (navigator.canShare({ files })) {
       try {
         await navigator.share({ files, text });
@@ -400,22 +409,14 @@ async function whatsapp() {
       }
     }
   }
-  await send({ text }, text, 'Message copied');
-}
-
-function picture() {
-  const { unavailable, keepers } = matchFor(state, date);
-  const row = state.roster.find((r) => r.date === date) || {};
-  const plan = bowlingPlan(state.bowling, unavailable, keepers);
-  return fieldPicture(plan, row.captain, `Starting fields – ${prettyDate(date).replace(',', '')}`);
-}
-
-// The promise goes straight into ClipboardItem so the click still counts as the
-// user's permission once the picture has finished drawing.
-async function copyPicture() {
   try {
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': picture() })]);
-    toast('Picture copied — paste it into WhatsApp.');
+    // The picture promise goes straight into ClipboardItem so the click still
+    // counts as permission once it has finished drawing.
+    await navigator.clipboard.write([new ClipboardItem({
+      'image/png': picture(),
+      'text/plain': new Blob([text], { type: 'text/plain' }),
+    })]);
+    toast('Copied — paste it into WhatsApp.');
   } catch {
     const url = URL.createObjectURL(await picture());
     const a = document.createElement('a');
@@ -423,7 +424,7 @@ async function copyPicture() {
     a.download = 'starting-fields.png';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast('Copying pictures is blocked here, so it was saved instead.');
+    showText(text);
   }
 }
 
@@ -447,8 +448,6 @@ main.addEventListener('click', (e) => {
     share();
   } else if (action === 'whatsapp') {
     whatsapp();
-  } else if (action === 'picture') {
-    copyPicture();
   } else if (action === 'move') {
     move(state[el.dataset.list], Number(el.dataset.i), Number(el.dataset.dir));
     persist();

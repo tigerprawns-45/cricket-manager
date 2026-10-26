@@ -60,23 +60,8 @@ export function fieldForOver(plan, over) {
   return { keeper, spots };
 }
 
-// Cricket names for the field spots, for a right-handed batter. Spots 1..left run
-// down the leg side from the bowler's end; the rest run back up the off side.
-const LEG = { 1: ['Square leg'], 2: ['Mid-on', 'Square leg'], 3: ['Mid-on', 'Square leg', 'Fine leg'], 4: ['Mid-on', 'Midwicket', 'Square leg', 'Fine leg'] };
-const OFF = { 1: ['Cover'], 2: ['Point', 'Mid-off'], 3: ['Gully', 'Point', 'Mid-off'], 4: ['Slip', 'Gully', 'Point', 'Mid-off'] };
-
-export function fieldSides(spotCount) {
-  const left = Math.ceil((spotCount - 1) / 2);
-  return { left, right: spotCount - 1 - left };
-}
-
-export function positionNames(spotCount) {
-  const { left, right } = fieldSides(spotCount);
-  const pick = (table, n) => table[n] || Array.from({ length: n }, (_, i) => `Fielder ${i + 1}`);
-  return ['Bowling', ...(left ? pick(LEG, left) : []), ...(right ? pick(OFF, right) : [])];
-}
-
-// The update the manager posts to the parents' WhatsApp group.
+// The update the manager posts to the parents' WhatsApp group; the starting
+// fields go with it as a picture.
 export function whatsappMessage({ team, dateLabel, captain, lollies, out, plan, nameOf }) {
   const [k1, k2] = plan.blocks.map((b) => nameOf(b.keeper));
   const lines = [
@@ -87,19 +72,6 @@ export function whatsappMessage({ team, dateLabel, captain, lollies, out, plan, 
     `🧤 Keepers: ${k1} (overs 1–${BLOCK}), ${k2} (overs ${BLOCK + 1}–${OVERS})`,
   ];
   if (out.length) lines.push(`🚫 Out this week: ${out.join(', ')}`);
-
-  for (const b of plan.blocks) {
-    const { spots } = fieldForOver(plan, b.firstOver);
-    const names = positionNames(spots.length);
-    const { left } = fieldSides(spots.length);
-    const at = (s) => `${names[s]}: ${nameOf(spots[s])}`;
-    const leg = Array.from({ length: left }, (_, i) => 1 + i);
-    const off = Array.from({ length: spots.length - 1 - left }, (_, i) => spots.length - 1 - i);
-    lines.push('', `*Starting field – overs ${b.firstOver}–${b.firstOver + BLOCK - 1}*`, `⚾ ${at(0)}`);
-    for (let i = 0; i < Math.max(leg.length, off.length); i++) {
-      lines.push([off[i], leg[i]].filter((s) => s !== undefined).map(at).join(' · '));
-    }
-  }
   return lines.join('\n');
 }
 

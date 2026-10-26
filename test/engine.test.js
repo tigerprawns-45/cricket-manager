@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  ballsPerBatter, battingOrder, bowlingPlan, fieldForOver, oversByPlayer, bowlingCounts, planProblems, whatsappMessage, positionNames,
+  ballsPerBatter, battingOrder, bowlingPlan, fieldForOver, oversByPlayer, bowlingCounts, planProblems, whatsappMessage,
 } from '../src/engine.js';
 
 const bowling = ['Hugh', 'Arlo', 'Oscar', 'Josh', 'Nick', 'Lachie', 'Sean', 'Marco'];
@@ -67,23 +67,16 @@ test('field rotates one spot per over and the bowler is always at spot 0', () =>
   assert.equal(fieldForOver(plan, 11).keeper, 'Hugh');
 });
 
-test('WhatsApp update matches the mock-up', () => {
-  const plan = bowlingPlan(bowling, [], ['Hugh', 'Lachie']);
+test('WhatsApp message has captain, lollies, keepers and who is out', () => {
+  const plan = bowlingPlan(bowling, ['Arlo'], ['Hugh', 'Lachie']);
   const msg = whatsappMessage({
-    team: 'HOWZATS U11s', dateLabel: 'Sat 31 Oct', captain: 'Hugh', lollies: 'Hugh', out: [], plan, nameOf: (x) => x,
+    team: 'HOWZATS U11s', dateLabel: 'Sat 31 Oct', captain: 'Hugh', lollies: 'Hugh', out: ['Arlo'], plan, nameOf: (x) => x,
   });
   assert.equal(msg, [
     '🏏 *HOWZATS U11s – Sat 31 Oct*', '',
-    '👑 Captain: Hugh', '🍬 Lollies: Hugh', '🧤 Keepers: Hugh (overs 1–10), Lachie (overs 11–20)', '',
-    '*Starting field – overs 1–10*', '⚾ Bowling: Lachie',
-    'Mid-off: Marco · Mid-on: Arlo', 'Point: Sean · Square leg: Oscar', 'Gully: Nick · Fine leg: Josh', '',
-    '*Starting field – overs 11–20*', '⚾ Bowling: Hugh',
-    'Mid-off: Oscar · Mid-on: Josh', 'Point: Arlo · Square leg: Nick', 'Gully: Marco · Fine leg: Sean',
+    '👑 Captain: Hugh', '🍬 Lollies: Hugh', '🧤 Keepers: Hugh (overs 1–10), Lachie (overs 11–20)',
+    '🚫 Out this week: Arlo',
   ].join('\n'));
-});
-
-test('one fewer fielder drops gully', () => {
-  assert.deepEqual(positionNames(6), ['Bowling', 'Mid-on', 'Square leg', 'Fine leg', 'Point', 'Mid-off']);
 });
 
 test('problems flag a missing or unavailable keeper', () => {
