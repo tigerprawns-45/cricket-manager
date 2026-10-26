@@ -280,7 +280,8 @@ async function share() {
 // can open behind the browser and leave the page looking frozen. Never use
 // alert/prompt here, since they block the page too.
 async function send(data, text, copiedMsg) {
-  const phone = matchMedia('(pointer: coarse)').matches;
+  // Touchscreen laptops report a coarse pointer too, so check the device itself.
+  const phone = navigator.userAgentData?.mobile ?? /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   if (phone && navigator.share) {
     try {
       await navigator.share(data);

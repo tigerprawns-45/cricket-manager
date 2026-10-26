@@ -14,7 +14,11 @@ createServer(async (req, res) => {
   if (!file.startsWith(root)) return res.writeHead(403).end();
   try {
     const body = await readFile(file);
-    res.writeHead(200, { 'Content-Type': types[extname(file)] || 'application/octet-stream' }).end(body);
+    res.writeHead(200, {
+      'Content-Type': types[extname(file)] || 'application/octet-stream',
+      // Always serve the latest files, so a refresh picks up changes.
+      'Cache-Control': 'no-store',
+    }).end(body);
   } catch {
     res.writeHead(404).end('Not found');
   }
