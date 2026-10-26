@@ -1,5 +1,5 @@
 import {
-  BLOCK, battingOrder, bowlingPlan, fieldForOver, oversByPlayer, bowlingCounts, planProblems,
+  BLOCK, battingOrder, bowlingPlan, fieldForOver, oversByPlayer, bowlingCounts, planProblems, whatsappMessage,
 } from './engine.js';
 import { load, save, defaultState, newPlayerId, matchFor, shareUrl, readShare } from './store.js';
 
@@ -104,6 +104,7 @@ function matchView() {
         <button class="primary" data-action="share">${readOnly ? 'Open app' : 'Share'}</button>
       </div>
       ${duties}
+      ${plan && !readOnly ? '<button class="primary wide-button" data-action="whatsapp">Copy for WhatsApp</button>' : ''}
     </section>
 
     <section class="card">
@@ -284,6 +285,29 @@ async function share() {
   }
 }
 
+async function whatsapp() {
+  const row = state.roster.find((r) => r.date === date) || {};
+  const { unavailable, keepers } = matchFor(state, date);
+  const text = whatsappMessage({
+    team: state.team,
+    dateLabel: prettyDate(date).replace(',', ''),
+    captain: nameOf(row.captain),
+    lollies: nameOf(row.lollies),
+    out: unavailable.map(nameOf),
+    plan: bowlingPlan(state.bowling, unavailable, keepers),
+    nameOf,
+  });
+  try {
+    if (navigator.share) await navigator.share({ text });
+    else {
+      await navigator.clipboard.writeText(text);
+      alert('Copied — paste it into WhatsApp.');
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') prompt('Copy this message:', text);
+  }
+}
+
 tabs.addEventListener('click', (e) => {
   const b = e.target.closest('button[data-tab]');
   if (!b) return;
@@ -302,6 +326,8 @@ main.addEventListener('click', (e) => {
     setMatch({ unavailable: unavailable.includes(pid) ? unavailable.filter((x) => x !== pid) : [...unavailable, pid] });
   } else if (action === 'share') {
     share();
+  } else if (action === 'whatsapp') {
+    whatsapp();
   } else if (action === 'move') {
     move(state[el.dataset.list], Number(el.dataset.i), Number(el.dataset.dir));
     persist();
