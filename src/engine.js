@@ -17,7 +17,7 @@ export function battingOrder(order, unavailable) {
 }
 
 // Goes round the bowling list, skipping unavailable players and the keeper for
-// that 10-over block. Block 2 carries on from whoever bowled the last over of block 1.
+// that 10-over block. Each block opens with the other block's keeper; block 2 then carries on from whoever bowled the last over of block 1.
 // Each block's ring is the cycle its bowlers rotate through; fielding follows it.
 export function bowlingPlan(order, unavailable, keepers) {
   const out = new Set(unavailable);
@@ -28,11 +28,13 @@ export function bowlingPlan(order, unavailable, keepers) {
   for (let b = 0; b < OVERS / BLOCK; b++) {
     const keeper = keepers[b];
     const eligible = (id) => !out.has(id) && id !== keeper;
-    const ring = [];
+    // The other block's keeper bowls first, so missing a block doesn't cost them overs.
+    const lead = keepers[1 - b];
+    const ring = lead && eligible(lead) ? [lead] : [];
     let p = last;
     for (let n = 0; n < order.length; n++) {
       p = (p + 1) % order.length;
-      if (eligible(order[p])) ring.push(order[p]);
+      if (eligible(order[p]) && order[p] !== ring[0]) ring.push(order[p]);
     }
     blocks.push({ keeper, ring, firstOver: b * BLOCK + 1 });
     if (ring.length === 0) continue;

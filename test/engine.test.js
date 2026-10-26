@@ -29,6 +29,14 @@ test('full squad reproduces the 2026/27 season sheet', () => {
   assert.equal(oversByPlayer(plan, 1).Hugh, undefined);
 });
 
+test('each keeper opens the bowling in the block they are not keeping', () => {
+  const plan = bowlingPlan(bowling, [], ['Hugh', 'Lachie']);
+  assert.equal(plan.overs[0].bowler, 'Lachie');
+  assert.equal(plan.overs[10].bowler, 'Hugh');
+  assert.equal(bowlingCounts(plan).Lachie, 2);
+  assert.equal(bowlingCounts(plan).Hugh, 2);
+});
+
 test('keeper never bowls in their block', () => {
   const plan = bowlingPlan(bowling, [], ['Sean', 'Sean']);
   assert.ok(plan.overs.every((o) => o.bowler !== 'Sean'));
@@ -39,9 +47,9 @@ test('unavailable players are skipped and the list keeps going round', () => {
   assert.equal(plan.overs.length, 20);
   assert.ok(plan.overs.every((o) => o.bowler !== 'Arlo' && o.bowler !== 'Marco'));
   assert.deepEqual(plan.overs.slice(0, 6).map((o) => o.bowler), ['Hugh', 'Oscar', 'Nick', 'Lachie', 'Sean', 'Hugh']);
-  // Block 1 ends on Sean (over 10); block 2 carries on past Marco (out) and Hugh (keeping).
+  // Block 1 ends on Sean (over 10); block 2 opens with Josh, then carries on past Marco (out) and Hugh (keeping).
   assert.equal(plan.overs[9].bowler, 'Sean');
-  assert.equal(plan.overs[10].bowler, 'Oscar');
+  assert.deepEqual(plan.overs.slice(10, 12).map((o) => o.bowler), ['Josh', 'Oscar']);
   assert.deepEqual(bowlingCounts(plan), { Hugh: 2, Oscar: 4, Nick: 4, Lachie: 4, Sean: 4, Josh: 2 });
 });
 
