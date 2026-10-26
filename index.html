@@ -114,6 +114,12 @@
       position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: center;
       background: var(--card); border-top: 1px solid var(--line); padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     }
+    .toast {
+      position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+      background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; max-width: calc(100% - 32px);
+    }
+    dialog { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 14px; width: min(480px, calc(100% - 32px)); }
+    dialog textarea { width: 100%; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
     nav[hidden] { display: none; }
     nav button { flex: 1; max-width: 200px; border: 0; background: none; color: var(--muted); font-weight: 600; }
     nav button[aria-current=true] { color: var(--accent); }

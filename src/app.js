@@ -273,16 +273,48 @@ async function share() {
     return;
   }
   const url = shareUrl(state, date);
-  const title = `${state.team} — ${prettyDate(date)}`;
-  try {
-    if (navigator.share) await navigator.share({ title, url });
-    else {
-      await navigator.clipboard.writeText(url);
-      alert('Link copied.');
+  await send({ title: `${state.team} — ${prettyDate(date)}`, url }, url, 'Link copied');
+}
+
+// Phones get the share sheet. Elsewhere copy instead: the Windows share dialog
+// can open behind the browser and leave the page looking frozen. Never use
+// alert/prompt here, since they block the page too.
+async function send(data, text, copiedMsg) {
+  const phone = matchMedia('(pointer: coarse)').matches;
+  if (phone && navigator.share) {
+    try {
+      await navigator.share(data);
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
     }
-  } catch (e) {
-    if (e.name !== 'AbortError') prompt('Copy this link:', url);
   }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(`${copiedMsg} — paste it into WhatsApp.`);
+  } catch {
+    showText(text);
+  }
+}
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.setAttribute('role', 'status');
+  t.textContent = msg;
+  document.body.append(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+function showText(text) {
+  const d = document.createElement('dialog');
+  d.innerHTML = '<p>Copy this:</p><textarea readonly rows="12"></textarea><p class="center"><button class="primary">Done</button></p>';
+  d.querySelector('textarea').value = text;
+  d.querySelector('button').onclick = () => d.close();
+  d.addEventListener('close', () => d.remove());
+  document.body.append(d);
+  d.showModal();
+  d.querySelector('textarea').select();
 }
 
 async function whatsapp() {
@@ -297,15 +329,7 @@ async function whatsapp() {
     plan: bowlingPlan(state.bowling, unavailable, keepers),
     nameOf,
   });
-  try {
-    if (navigator.share) await navigator.share({ text });
-    else {
-      await navigator.clipboard.writeText(text);
-      alert('Copied — paste it into WhatsApp.');
-    }
-  } catch (e) {
-    if (e.name !== 'AbortError') prompt('Copy this message:', text);
-  }
+  await send({ text }, text, 'Copied');
 }
 
 tabs.addEventListener('click', (e) => {
