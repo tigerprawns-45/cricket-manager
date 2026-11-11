@@ -386,6 +386,7 @@ function matchUpdate() {
     lollies: nameOf(row.lollies),
     out: unavailable.map(nameOf),
     plan,
+    batting: battingOrder(state.batting, unavailable),
     nameOf,
   });
   // The picture repeats the details, so a paste that keeps only the image loses nothing.

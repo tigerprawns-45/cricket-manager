@@ -62,7 +62,7 @@ export function fieldForOver(plan, over) {
 
 // The update the manager posts to the parents' WhatsApp group; the starting
 // fields go with it as a picture.
-export function whatsappMessage({ team, dateLabel, captain, lollies, out, plan, nameOf }) {
+export function whatsappMessage({ team, dateLabel, captain, lollies, out, plan, batting = [], nameOf }) {
   const [k1, k2] = plan.blocks.map((b) => nameOf(b.keeper));
   const lines = [
     `🏏 *${team} – ${dateLabel}*`,
@@ -72,6 +72,10 @@ export function whatsappMessage({ team, dateLabel, captain, lollies, out, plan, 
     `🧤 Keepers: ${k1} (overs 1–${BLOCK}), ${k2} (overs ${BLOCK + 1}–${OVERS})`,
   ];
   if (out.length) lines.push(`🚫 Out this week: ${out.join(', ')}`);
+  if (batting.length) {
+    lines.push('', `🏏 Batting order (${batting[0].balls} balls each)`);
+    for (const b of batting) lines.push(`${b.position}. ${nameOf(b.id)}`);
+  }
   return lines.join('\n');
 }
 

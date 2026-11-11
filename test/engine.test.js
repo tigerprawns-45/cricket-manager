@@ -70,12 +70,14 @@ test('field rotates one spot per over and the bowler is always at spot 0', () =>
 test('WhatsApp message has captain, lollies, keepers and who is out', () => {
   const plan = bowlingPlan(bowling, ['Arlo'], ['Hugh', 'Lachie']);
   const msg = whatsappMessage({
-    team: 'HOWZATS U11s', dateLabel: 'Sat 31 Oct', captain: 'Hugh', lollies: 'Hugh', out: ['Arlo'], plan, nameOf: (x) => x,
+    team: 'HOWZATS U11s', dateLabel: 'Sat 31 Oct', captain: 'Hugh', lollies: 'Hugh', out: ['Arlo'], plan,
+    batting: battingOrder(['Hugh', 'Josh', 'Arlo'], ['Arlo']), nameOf: (x) => x,
   });
   assert.equal(msg, [
     '🏏 *HOWZATS U11s – Sat 31 Oct*', '',
     '👑 Captain: Hugh', '🍬 Lollies: Hugh', '🧤 Keepers: Hugh (overs 1–10), Lachie (overs 11–20)',
-    '🚫 Out this week: Arlo',
+    '🚫 Out this week: Arlo', '',
+    '🏏 Batting order (60 balls each)', '1. Hugh', '2. Josh',
   ].join('\n'));
 });
 
